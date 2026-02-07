@@ -1,6 +1,9 @@
+use include_dir::{Dir, include_dir};
 use std::fs;
 use std::io::{self, Read, Write};
 use std::path::PathBuf;
+
+static ProjectDir: Dir = include_dir!("$CARGO_MANIFEST_DIR/typstFiles");
 
 pub struct Config {
     template: PathBuf,
@@ -86,6 +89,9 @@ main = "{}/main"
         Ok(_) => println!("Default Config written to file"),
         Err(e) => println!("Could not write default config to file: {e}"),
     }
+
+    // write default typs files
+    write_default_files();
 }
 
 /// Writes the default setup files to the config dir.
@@ -96,16 +102,22 @@ fn write_default_files() {
         None => panic!("A config directory was expected but not found"),
     };
     config_dir.push(r"typinit");
-    let files = ["template.typ", "common.typ", "main.typ", "references.typ"];
-    for i in files {
-        config_dir.push(i);
-        fs::File::create(&config_dir);
+    for file in ProjectDir.files() {
+        let path = config_dir.join(file.path());
+        match fs::write(path, file.contents()) {
+            Ok(_) => println!("Typst files moved"),
+            Err(e) => println!("Something went wrong moving the typst files: {e}"),
+        };
     }
 }
 
 /// Funciton to set the appropriate paths for the needed files.
 fn setup() {
     println!("Setup Funciton - TODO");
+}
+
+fn read_config() {
+    println!("Read Config - TODO")
 }
 
 fn get_config_dir() -> Option<PathBuf> {
