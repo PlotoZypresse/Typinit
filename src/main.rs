@@ -1,5 +1,5 @@
 use include_dir::{Dir, include_dir};
-use serde::{Deserialize, Serialize};
+use serde::Deserialize;
 use std::fs;
 use std::io::{self};
 use std::path::PathBuf;
@@ -126,16 +126,14 @@ fn setup() {
 
 /// reads the config file an populates the config struct
 fn read_config(path: &mut PathBuf) -> Config {
-    //path.join(r"config.toml");
-    let config_content = match fs::read_to_string(&path) {
+    let config_content = match fs::read_to_string(path) {
         Ok(config_content) => config_content,
         Err(e) => panic!("Error reading config file: {e}"),
     };
-    let config = match toml::from_str(&config_content) {
+    match toml::from_str(&config_content) {
         Ok(config) => config,
         Err(e) => panic!("Error deserializing config: {e}"),
-    };
-    return config;
+    }
 }
 
 /// Copies the template files from the location specified in
