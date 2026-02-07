@@ -1,10 +1,12 @@
 use include_dir::{Dir, include_dir};
+use serde::{Deserialize, Serialize};
 use std::fs;
-use std::io::{self, Read, Write};
+use std::io::{self};
 use std::path::PathBuf;
 
-static ProjectDir: Dir = include_dir!("$CARGO_MANIFEST_DIR/typstFiles");
+static PROJECT_DIR: Dir = include_dir!("$CARGO_MANIFEST_DIR/typstFiles");
 
+#[derive(Deserialize)]
 pub struct Config {
     template: PathBuf,
     common: PathBuf,
@@ -20,11 +22,16 @@ fn main() {
     println!("{}", config_dir.display());
 
     config_dir.push(r"typinit");
-    match config_dir.try_exists() {
-        Ok(true) => (),
+    let config = match config_dir.try_exists() {
+        Ok(true) => read_config(&mut config_dir.join(r"config.toml")),
         Ok(false) => default_config(),
         Err(e) => panic!("Failed to check for config dir. Error: {e}"),
-    }
+    };
+
+    println!("Template: {}", config.template.display());
+    println!("Common: {}", config.common.display());
+    println!("References: {}", config.references.display());
+    println!("Main: {}", config.main.display());
 
     println!("Enter the name of project folder: ");
     let mut folder_name = String::new();
@@ -50,7 +57,7 @@ fn trim_newline(s: &mut String) {
     }
 }
 
-fn default_config() {
+fn default_config() -> Config {
     // create ~/.config if not found and the projects subfolder.
     // generate the standard toml config file and the default typst files.
     //
@@ -73,7 +80,6 @@ fn default_config() {
 
     let config_toml = format!(
         r#"
-[Locations]
 template = "{}/template.typ"
 common = "{}/common.typ"
 references = "{}/references"
@@ -92,6 +98,8 @@ main = "{}/main"
 
     // write default typs files
     write_default_files();
+
+    read_config(&mut config_dir)
 }
 
 /// Writes the default setup files to the config dir.
@@ -102,7 +110,7 @@ fn write_default_files() {
         None => panic!("A config directory was expected but not found"),
     };
     config_dir.push(r"typinit");
-    for file in ProjectDir.files() {
+    for file in PROJECT_DIR.files() {
         let path = config_dir.join(file.path());
         match fs::write(path, file.contents()) {
             Ok(_) => println!("Typst files moved"),
@@ -116,8 +124,24 @@ fn setup() {
     println!("Setup Funciton - TODO");
 }
 
-fn read_config() {
-    println!("Read Config - TODO")
+/// reads the config file an populates the config struct
+fn read_config(path: &mut PathBuf) -> Config {
+    //path.join(r"config.toml");
+    let config_content = match fs::read_to_string(&path) {
+        Ok(config_content) => config_content,
+        Err(e) => panic!("Error reading config file: {e}"),
+    };
+    let config = match toml::from_str(&config_content) {
+        Ok(config) => config,
+        Err(e) => panic!("Error deserializing config: {e}"),
+    };
+    return config;
+}
+
+/// Copies the template files from the location specified in
+/// the config file(struct) to the created project folder.
+fn copy_files() {
+    println!("Copy Files - TODO");
 }
 
 fn get_config_dir() -> Option<PathBuf> {
