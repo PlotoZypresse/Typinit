@@ -22,7 +22,7 @@ fn main() {
         Some(config_dir) => config_dir,
         None => panic!("No config dir found"),
     };
-    println!("{}", config_dir.display());
+    // println!("{}", config_dir.display());
 
     // create dir for typinit in the config dir
     config_dir.push(r"typinit");
@@ -32,10 +32,10 @@ fn main() {
         Err(e) => panic!("Failed to check for config dir. Error: {e}"),
     };
 
-    println!("Template: {}", config.template.display());
-    println!("Common: {}", config.common.display());
-    println!("References: {}", config.references.display());
-    println!("Main: {}", config.main.display());
+    // println!("Template: {}", config.template.display());
+    // println!("Common: {}", config.common.display());
+    // println!("References: {}", config.references.display());
+    // println!("Main: {}", config.main.display());
 
     println!("Enter the name of project folder: ");
     let mut folder_name = String::new();
@@ -178,17 +178,14 @@ fn get_config_dir() -> Option<PathBuf> {
 fn print_name() {
     println!(
         r"
- /$$$$$$$$                  /$$           /$$   /$$    
-|__  $$__/                 |__/          |__/  | $$    
-   | $$ /$$   /$$  /$$$$$$  /$$ /$$$$$$$  /$$ /$$$$$$  
-   | $$| $$  | $$ /$$__  $$| $$| $$__  $$| $$|_  $$_/  
-   | $$| $$  | $$| $$  \ $$| $$| $$  \ $$| $$  | $$    
-   | $$| $$  | $$| $$  | $$| $$| $$  | $$| $$  | $$ /$$
-   | $$|  $$$$$$$| $$$$$$$/| $$| $$  | $$| $$  |  $$$$/
-   |__/ \____  $$| $$____/ |__/|__/  |__/|__/   \___/  
-        /$$  | $$| $$                                  
-       |  $$$$$$/| $$                                  
-        \______/ |__/                                  
-    ",
+  _______          _       _ _   
+ |__   __|        (_)     (_) |  
+    | |_   _ _ __  _ _ __  _| |_ 
+    | | | | | '_ \| | '_ \| | __|
+    | | |_| | |_) | | | | | | |_ 
+    |_|\__, | .__/|_|_| |_|_|\__|
+        __/ | |                  
+       |___/|_|                      
+       ",
     )
 }
