@@ -1,13 +1,18 @@
+use crossterm::{
+    cursor::{MoveToColumn, MoveUp},
+    execute,
+    terminal::{Clear, ClearType},
+};
 use include_dir::{Dir, include_dir};
-use serde::Deserialize;
+use serde::{Deserialize, Serialize};
 use std::fs;
+use std::io::stdout;
 use std::io::{self};
-use std::path::Path;
 use std::path::PathBuf;
 
 static PROJECT_DIR: Dir = include_dir!("$CARGO_MANIFEST_DIR/typstFiles");
 
-#[derive(Deserialize)]
+#[derive(Deserialize, Serialize)]
 pub struct Config {
     template: PathBuf,
     common: PathBuf,
@@ -16,6 +21,7 @@ pub struct Config {
 }
 
 fn main() {
+    execute!(stdout(), Clear(ClearType::All)).unwrap();
     print_name();
     // get the right config dir for the platform
     let mut config_dir = match get_config_dir() {
@@ -136,9 +142,39 @@ fn write_default_files() {
     }
 }
 
-/// Funciton to set the appropriate paths for the needed files.
-fn setup() {
-    println!("Setup Funciton - TODO");
+/// Function to set the appropriate paths for the needed files.
+fn setup() -> Config {
+    execute!(stdout(), Clear(ClearType::All)).unwrap();
+    print_name();
+
+    let mut config_str: Vec<String> = Vec::new();
+
+    let paths = ["template.typ", "common.typ", "references.bib", "main.typ"];
+    for file in paths {
+        println!("Enter the absolute path to your {file} file: ");
+
+        let mut input = String::new();
+        io::stdin()
+            .read_line(&mut input)
+            .expect("Failed to read Input");
+
+        trim_newline(&mut input);
+        config_str.push(input);
+        execute!(
+            stdout(),
+            MoveUp(2),
+            MoveToColumn(0),
+            Clear(ClearType::FromCursorDown)
+        )
+        .unwrap();
+    }
+
+    Config {
+        template: PathBuf::from(&config_str[0]),
+        common: PathBuf::from(&config_str[1]),
+        references: PathBuf::from(&config_str[2]),
+        main: PathBuf::from(&config_str[3]),
+    }
 }
 
 /// reads the config file an populates the config struct
@@ -151,6 +187,16 @@ fn read_config(path: &mut PathBuf) -> Config {
         Ok(config) => config,
         Err(e) => panic!("Error deserializing config: {e}"),
     }
+}
+
+fn write_config(config: Config, path: PathBuf) {
+    if let Ok(config_toml) = toml::to_string(&config) {
+        if let Err(e) = fs::write(path, config_toml) {
+            eprintln!("Failed to write to config.toml file: {e}");
+        };
+    } else {
+        eprintln!("Error writing config to config.toml:")
+    };
 }
 
 /// Copies the template files from the location specified in

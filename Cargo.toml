@@ -8,3 +8,4 @@ serde = { version = "1.0.228", features = ["derive"] }
 dirs = "6.0.0"
 include_dir = "0.7.4"
 toml = "0.9.11"
+crossterm = "0.29.0"
