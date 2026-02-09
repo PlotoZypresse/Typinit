@@ -28,7 +28,6 @@ fn main() {
         Some(config_dir) => config_dir,
         None => panic!("No config dir found"),
     };
-    // println!("{}", config_dir.display());
 
     // create dir for typinit in the config dir
     config_dir.push(r"typinit");
@@ -38,11 +37,28 @@ fn main() {
         Err(e) => panic!("Failed to check for config dir. Error: {e}"),
     };
 
-    // println!("Template: {}", config.template.display());
-    // println!("Common: {}", config.common.display());
-    // println!("References: {}", config.references.display());
-    // println!("Main: {}", config.main.display());
+    println!("1. New Typst project in current directory");
+    println!("2. Change template paths");
 
+    let mut input = String::new();
+    io::stdin()
+        .read_line(&mut input)
+        .expect("Failed to read input");
+
+    let input: isize = input.trim().parse().expect("Invalid input");
+
+    config_dir.push(r"config.toml");
+    match input {
+        1 => new_project(config),
+        2 => setup(&config_dir),
+        _ => panic!("Non-valid Input!"),
+    }
+
+    let config = read_config(&mut config_dir);
+    write_config(&config, &config_dir);
+}
+
+fn new_project(config: Config) {
     println!("Enter the name of project folder: ");
     let mut folder_name = String::new();
 
@@ -84,16 +100,14 @@ fn default_config() -> Config {
     // create typinit dir
     config_dir.push(r"typinit");
     let config_dir2 = config_dir.clone();
-    match fs::create_dir(&config_dir) {
-        Ok(_) => println!("Created config dir in the appropriate config dir for the machine"),
-        Err(e) => println!("Config dir already exists: {e}"),
+    if let Err(e) = fs::create_dir(&config_dir) {
+        eprintln!("Config dir already exists: {e}");
     }
 
     // create config.toml file
     config_dir.push(r"config.toml");
-    match fs::File::create(&config_dir) {
-        Ok(_) => println!("created config file"),
-        Err(e) => println!("Error creating config file: {e}"),
+    if let Err(e) = fs::File::create(&config_dir) {
+        eprintln!("Error creating config.toml file: {e}");
     }
 
     // populate config.toml
@@ -109,10 +123,8 @@ main = "{}/main.typ"
         &config_dir2.display(),
         &config_dir2.display()
     );
-
-    match fs::write(&config_dir, config_toml.as_bytes()) {
-        Ok(_) => println!("Default Config written to file"),
-        Err(e) => println!("Could not write default config to file: {e}"),
+    if let Err(e) = fs::write(&config_dir, config_toml.as_bytes()) {
+        eprintln!("Could not write default config to file: {e}");
     }
 
     // write default typst files to config dir
@@ -135,15 +147,14 @@ fn write_default_files() {
     config_dir.push(r"typinit");
     for file in PROJECT_DIR.files() {
         let path = config_dir.join(file.path());
-        match fs::write(path, file.contents()) {
-            Ok(_) => println!("Typst files moved"),
-            Err(e) => println!("Something went wrong moving the typst files: {e}"),
-        };
+        if let Err(e) = fs::write(path, file.contents()) {
+            eprintln!("Something went wrong moving the typst files: {e}");
+        }
     }
 }
 
 /// Function to set the appropriate paths for the needed files.
-fn setup() -> Config {
+fn setup(path: &PathBuf) {
     execute!(stdout(), Clear(ClearType::All)).unwrap();
     print_name();
 
@@ -169,15 +180,17 @@ fn setup() -> Config {
         .unwrap();
     }
 
-    Config {
+    let config = Config {
         template: PathBuf::from(&config_str[0]),
         common: PathBuf::from(&config_str[1]),
         references: PathBuf::from(&config_str[2]),
         main: PathBuf::from(&config_str[3]),
-    }
+    };
+
+    write_config(&config, path);
 }
 
-/// reads the config file an populates the config struct
+/// reads the config.toml file an populates the config struct
 fn read_config(path: &mut PathBuf) -> Config {
     let config_content = match fs::read_to_string(path) {
         Ok(config_content) => config_content,
@@ -189,9 +202,10 @@ fn read_config(path: &mut PathBuf) -> Config {
     }
 }
 
-fn write_config(config: Config, path: PathBuf) {
+/// writes the passed config struct to the config.toml file
+fn write_config(config: &Config, path: &PathBuf) {
     if let Ok(config_toml) = toml::to_string(&config) {
-        if let Err(e) = fs::write(path, config_toml) {
+        if let Err(e) = fs::write(path, config_toml.as_bytes()) {
             eprintln!("Failed to write to config.toml file: {e}");
         };
     } else {
@@ -202,7 +216,6 @@ fn write_config(config: Config, path: PathBuf) {
 /// Copies the template files from the location specified in
 /// the config file(struct) to the created project folder.
 fn copy_files(config: Config, path: PathBuf) {
-    println!("Copy Files - TODO");
     if let Err(e) = fs::copy(config.template, path.join("template.typ")) {
         eprintln!("Failed to copy your template: {e}");
     }
