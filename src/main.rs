@@ -5,15 +5,21 @@ use crossterm::{
 };
 use include_dir::{Dir, include_dir};
 use serde::{Deserialize, Serialize};
-use std::fs;
 use std::io::stdout;
 use std::io::{self};
 use std::path::PathBuf;
+use std::{collections::HashMap, fs};
 
 static PROJECT_DIR: Dir = include_dir!("$CARGO_MANIFEST_DIR/typstFiles");
 
 #[derive(Deserialize, Serialize)]
 pub struct Config {
+    default: Default,
+    extra: HashMap<String, PathBuf>,
+}
+
+#[derive(Deserialize, Serialize)]
+pub struct Default {
     template: PathBuf,
     common: PathBuf,
     references: PathBuf,
@@ -46,7 +52,6 @@ fn main() {
         .expect("Failed to read input");
 
     let input: isize = input.trim().parse().expect("Invalid input");
-
     config_dir.push(r"config.toml");
     match input {
         1 => new_project(config),
@@ -112,11 +117,14 @@ fn default_config() -> Config {
 
     // populate config.toml
     let config_toml = format!(
-        r#"
+        r#"[default]
 template = "{}/template.typ"
 common = "{}/common.typ"
 references = "{}/references.bib"
 main = "{}/main.typ"
+
+[extra]
+
 "#,
         &config_dir2.display(),
         &config_dir2.display(),
@@ -159,6 +167,7 @@ fn setup(path: &PathBuf) {
     print_name();
 
     let mut config_str: Vec<String> = Vec::new();
+    let mut extra_hashmap: HashMap<String, PathBuf> = HashMap::new();
 
     let paths = ["template.typ", "common.typ", "references.bib", "main.typ"];
     for file in paths {
@@ -179,12 +188,69 @@ fn setup(path: &PathBuf) {
         )
         .unwrap();
     }
+    println!("Do you want to add more files? y/n");
+    let mut input = String::new();
+    io::stdin()
+        .read_line(&mut input)
+        .expect("Failed to read input");
 
-    let config = Config {
+    let nr_file: isize = if input.trim() == "yes" || input.trim() == "y" || input.trim() == "Yes" {
+        println!("How many files do you want to add?");
+        let mut file_in = String::new();
+        io::stdin()
+            .read_line(&mut file_in)
+            .expect("Failed to read input");
+        file_in.trim().parse().expect("Invalid input")
+    } else if input.trim() == "no" || input.trim() == "n" || input.trim() == "No" {
+        println!("No extra files added");
+        0
+    } else {
+        println!("Invalid input. No extra files added.");
+        0
+    };
+
+    if nr_file > 0 {
+        for i in 1..nr_file + 1 {
+            println!("Enter the name of your extra file {i}, including file type: ");
+
+            let mut name = String::new();
+            io::stdin()
+                .read_line(&mut name)
+                .expect("Failed to read Input");
+
+            println!("Enter the absolute path to your extra file {i}: ");
+            let mut path = String::new();
+            io::stdin()
+                .read_line(&mut path)
+                .expect("Failed to read Input");
+
+            trim_newline(&mut name);
+            trim_newline(&mut path);
+
+            let path = PathBuf::from(path);
+
+            extra_hashmap.insert(name, path);
+
+            execute!(
+                stdout(),
+                MoveUp(2),
+                MoveToColumn(0),
+                Clear(ClearType::FromCursorDown)
+            )
+            .unwrap();
+        }
+    }
+
+    let default = Default {
         template: PathBuf::from(&config_str[0]),
         common: PathBuf::from(&config_str[1]),
         references: PathBuf::from(&config_str[2]),
         main: PathBuf::from(&config_str[3]),
+    };
+
+    let config = Config {
+        default,
+        extra: extra_hashmap,
     };
 
     write_config(&config, path);
@@ -216,17 +282,23 @@ fn write_config(config: &Config, path: &PathBuf) {
 /// Copies the template files from the location specified in
 /// the config file(struct) to the created project folder.
 fn copy_files(config: Config, path: PathBuf) {
-    if let Err(e) = fs::copy(config.template, path.join("template.typ")) {
+    if let Err(e) = fs::copy(config.default.template, path.join("template.typ")) {
         eprintln!("Failed to copy your template: {e}");
     }
-    if let Err(e) = fs::copy(config.common, path.join("common.typ")) {
+    if let Err(e) = fs::copy(config.default.common, path.join("common.typ")) {
         eprintln!("Failed to copy your common file: {e}");
     }
-    if let Err(e) = fs::copy(config.references, path.join("references.bib")) {
+    if let Err(e) = fs::copy(config.default.references, path.join("references.bib")) {
         eprintln!("Failed to copy your reference file: {e}");
     }
-    if let Err(e) = fs::copy(config.main, path.join("main.typ")) {
+    if let Err(e) = fs::copy(config.default.main, path.join("main.typ")) {
         eprintln!("Failed to copy your main file: {e}");
+    }
+
+    for (name, file_path) in config.extra {
+        if let Err(e) = fs::copy(file_path, path.join(&name)) {
+            eprintln!("Failed to copy your {} file: {e}", &name);
+        }
     }
 }
 
