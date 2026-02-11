@@ -27,7 +27,7 @@ references = "/absolute/path/to/references.bib"
 main = "/absolute/path/to/main.typ"
 
 [extra]
-extra.txt = "path/to/additional/file"
+extra.txt = "path/to/additional/file.txt"
 ```
 
 The directory containing the config.toml file is the platforms _./config_ folder. It can be changed either directly or through running _typinit_ in the command line.
